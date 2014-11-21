@@ -1,5 +1,8 @@
 #!/bin/sh
 
+set -e
+set -x
+
 # Script to create images for use in Google Cloud Compute
 
 # TODO: configure to use google NTP servers - metadata.google.internal (169.254.169.254)
