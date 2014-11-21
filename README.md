@@ -9,7 +9,4 @@ FreeBSD. Needs lots of work.
   * gtar (archivers/gtar)
   * google-cloud-sdk (net/google-cloud-sdk)
 
-* best run on the same version of the OS that images are being created for,
-  since newfs is used from the host
-
 * You should login to GCloud before running
