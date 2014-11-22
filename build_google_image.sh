@@ -5,9 +5,6 @@ set -x
 
 # Script to create images for use in Google Cloud Compute
 
-# TODO: configure to use google NTP servers - metadata.google.internal (169.254.169.254)
-# TODO: configure syslog to use serial?
-
 ###############################
 # tweak these to taste
 
@@ -58,8 +55,10 @@ bar -n ${WRKDIR}/${VERSION}/kernel.txz | tar -xzf -
 
 cp /etc/resolv.conf etc/resolv.conf
 
-chroot . usr/bin/env ASSUME_ALWAYS_YES=yes usr/sbin/pkg install sudo google-cloud-sdk google-daemon
+yes | chroot . usr/bin/env ASSUME_ALWAYS_YES=yes usr/sbin/pkg install sudo google-cloud-sdk google-daemon bsdinfo bsdstats
 chroot . usr/bin/env ASSUME_ALWAYS_YES=yes usr/sbin/pkg clean -ya
+chroot . usr/sbin/pw lock root
+
 rm -rf var/db/pkg/repo*
 
 cat << EOF > etc/resolv.conf
@@ -68,15 +67,11 @@ nameserver 169.254.169.254
 nameserver 8.8.8.8
 EOF
 
-cat etc/resolv.conf
-
 cat << EOF > etc/fstab
 # Custom /etc/fstab for FreeBSD VM images
 /dev/gpt/rootfs   /       ufs     rw      1       1
 /dev/gpt/swapfs   none    swap    sw      0       0
 EOF
-
-cat etc/fstab
 
 cat << EOF > etc/rc.conf
 console="comconsole"
@@ -85,24 +80,63 @@ ifconfig_vtnet0="SYNCDHCP mtu 1460"
 ntpd_sync_on_start="YES"
 ntpd_enable="YES"
 sshd_enable="YES"
+bsdstats_enable="YES"
 google_accounts_manager_enable="YES"
 EOF
-
-cat etc/rc.conf
 
 cat << EOF > boot/loader.conf
 console="comconsole"
 hw.memtest.tests="0"
 kern.timecounter.hardware=ACPI-safe
+autoboot-delay="0"
+loader_logo="none"
 EOF
-
-cat boot/loader.conf
 
 cat << EOF >> etc/hosts
 169.254.169.254 metadata.google.internal metadata
 EOF
 
-cat etc/hosts
+cat << EOF > etc/ntp.conf
+server metadata.google.internal iburst
+
+restrict default kod nomodify notrap nopeer noquery
+restrict -6 default kod nomodify notrap nopeer noquery
+
+restrict 127.0.0.1
+restrict -6 ::1
+restrict 127.127.1.0
+EOF
+
+cat << EOF >> etc/profile
+if [ ! -f ~/.hushlogin ]; then
+  bsdinfo
+fi
+EOF
+
+cat << EOF >> etc/syslog.conf
+*.err;kern.warning;auth.notice;mail.crit                /dev/console
+EOF
+
+cat << EOF >> etc/ssh/sshd_config
+ChallengeResponseAuthentication no
+X11Forwarding no
+AcceptEnv LANG
+Ciphers aes128-ctr,aes192-ctr,aes256-ctr,arcfour256,arcfour128,aes128-cbc,3des-cbc
+AllowAgentForwarding no
+ClientAliveInterval 420
+EOF
+
+cat << EOF >> etc/crontab
+0	3	*	*	*	root	/usr/sbin/freebsd-update cron
+EOF
+
+cat << EOF >> etc/sysctl.conf
+net.inet.icmp.drop_redirect=1
+net.inet.ip.redirect=0
+net.inet.tcp.blackhole=2
+net.inet.udp.blackhole=1
+kern.ipc.somaxconn=1024
+EOF
 
 sync
 sync

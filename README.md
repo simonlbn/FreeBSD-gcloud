@@ -1,8 +1,7 @@
-Script to generate FreeBSD Google Cloud images
-==============================================
+Google Cloud FreeBSD Image Builder
+==================================
 
-Here's the basic beginnings of my script to create Google Cloud images for
-FreeBSD. Needs lots of work.
+Here's my script to create Google Cloud images for FreeBSD.
 
 * Requires these pkgs (ports):
   * bar (textproc/bar)
